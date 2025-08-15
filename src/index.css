@@ -1,0 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Kinto Dark Theme - Dark Reddish Brown Background */
+    --background: 2 60% 10%;
+    --foreground: 0 0% 98%;
+
+    /* Brand Colors */
+    --primary: 2 60% 25%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 15 80% 35%;
+    
+    /* Accent Colors */
+    --accent: 15 70% 20%;
+    --accent-foreground: 0 0% 98%;
+    
+    /* Semantic Colors */
+    --secondary: 2 40% 15%;
+    --secondary-foreground: 0 0% 95%;
+    
+    --muted: 2 30% 18%;
+    --muted-foreground: 0 0% 75%;
+    
+    --card: 2 50% 12%;
+    --card-foreground: 0 0% 95%;
+    
+    --border: 2 40% 20%;
+    --input: 2 40% 18%;
+    --ring: 15 80% 35%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(2, 60%, 25%), hsl(15, 80%, 35%));
+    --gradient-subtle: linear-gradient(180deg, hsl(2, 50%, 12%), hsl(2, 60%, 10%));
+    --gradient-hero: linear-gradient(135deg, hsl(2, 60%, 10%), hsl(2, 70%, 15%), hsl(15, 80%, 20%));
+    
+    /* Shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(2 60% 8% / 0.8);
+    --shadow-glow: 0 0 40px hsl(15 80% 35% / 0.3);
+    --shadow-card: 0 8px 25px -5px hsl(2 60% 5% / 0.6);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --popover: 2 50% 12%;
+    --popover-foreground: 0 0% 95%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 2 50% 12%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 2 60% 25%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 2 40% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 2 40% 20%;
+    --sidebar-ring: 15 80% 35%;
+  }
+
+  .dark {
+    /* Same values for dark mode since we're using dark theme by default */
+    --background: 2 60% 10%;
+    --foreground: 0 0% 98%;
+    --card: 2 50% 12%;
+    --card-foreground: 0 0% 95%;
+    --popover: 2 50% 12%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 2 60% 25%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 2 40% 15%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 2 30% 18%;
+    --muted-foreground: 0 0% 75%;
+    --accent: 15 70% 20%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 2 40% 20%;
+    --input: 2 40% 18%;
+    --ring: 15 80% 35%;
+    --sidebar-background: 2 50% 12%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 2 60% 25%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 2 40% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 2 40% 20%;
+    --sidebar-ring: 15 80% 35%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-playfair;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .bg-gradient-subtle {
+    background: var(--gradient-subtle);
+  }
+  
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+  
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.8s ease-out forwards;
+  }
+  
+  .hover-lift {
+    @apply transition-smooth hover:transform hover:-translate-y-2 hover:shadow-glow;
+  }
+}
