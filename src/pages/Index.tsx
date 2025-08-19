@@ -42,7 +42,7 @@ const Index = () => {
         <div className="container mx-auto text-center">
           <div className="mb-6">
             <h3 className="text-2xl font-playfair font-bold text-primary-glow">Kinto</h3>
-            <p className="text-muted-foreground mt-2">Where music meets soul</p>
+            <p className="text-muted-foreground mt-2">Where you find that forever person</p>
           </div>
           <p className="text-sm text-muted-foreground opacity-75">
             © 2025 Kinto. All rights reserved. Launching soon on iOS and Android.

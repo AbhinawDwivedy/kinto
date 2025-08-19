@@ -5,7 +5,7 @@ const SolutionsSection = () => {
   const solutions = [
     {
       icon: Brain,
-      title: "AI-Powered Matching",
+      title: "Social Media Algorithm Powered Matching",
       description: "Multi-modal analysis of your music, posts, and preferences creates deeper compatibility scores.",
       features: ["366-dimensional personality vectors", "Music taste analysis", "Emotion-first scoring"]
     },

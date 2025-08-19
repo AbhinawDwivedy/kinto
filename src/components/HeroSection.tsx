@@ -23,13 +23,13 @@ const HeroSection = () => {
             Kinto
           </h1>
           <p className="text-xl md:text-2xl mb-8 text-muted-foreground font-light max-w-2xl mx-auto leading-relaxed">
-            Where music meets soul. Connect with others through shared vibes, 
+            Where you find that forever person. Connect with others through shared vibes, 
             genuine emotions, and the soundtrack of your life.
           </p>
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12">
             <div className="flex items-center space-x-2 text-primary-glow">
               <Music className="h-5 w-5" />
-              <span className="font-medium">AI-Powered Music Matching</span>
+              <span className="font-medium">Social Media Algorithm Powered Matching</span>
             </div>
             <div className="hidden md:block w-px h-6 bg-border" />
             <div className="flex items-center space-x-2 text-primary-glow">
