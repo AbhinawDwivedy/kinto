@@ -7,18 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Settings, 
-  Camera, 
-  Music, 
-  Instagram, 
-  MapPin, 
-  Heart, 
-  Edit3,
-  Spotify,
-  Shield,
-  LogOut
-} from 'lucide-react';
+import { Settings, Camera, Music, Instagram, MapPin, Heart, Edit3, AlignJustify as Spotify, Shield, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const ProfilePage: React.FC = () => {
