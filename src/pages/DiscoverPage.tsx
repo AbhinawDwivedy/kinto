@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, X, MapPin, Music, Instagram, Spotify } from 'lucide-react';
+import { Heart, X, MapPin, Music, Instagram, AlignJustify as Spotify } from 'lucide-react';
 import { User } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchingAlgorithm } from '@/lib/matching-algorithm';
