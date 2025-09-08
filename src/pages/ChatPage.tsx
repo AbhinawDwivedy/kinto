@@ -4,156 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessageCircle, Send, Clock, Heart, Smile } from 'lucide-react';
-import { Conversation, Message, User } from '@/types';
+import { MessageCircle, Send, Clock, Heart, Smile, ArrowLeft } from 'lucide-react';
+import { useChat } from '@/hooks/useChat';
 
 const ChatPage: React.FC = () => {
+  const { conversations, messages, loading, sendMessage } = useChat();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
 
-  // Mock conversations data
-  const mockConversations: (Conversation & { user: User; lastMessage: Message })[] = [
-    {
-      id: '1',
-      participants: ['current_user', 'user1'],
-      isSlowChat: true,
-      slowChatDelay: 30,
-      unreadCount: 2,
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      user: {
-        id: 'user1',
-        email: 'emma@example.com',
-        name: 'Emma',
-        age: 25,
-        gender: 'female',
-        bio: 'Art enthusiast and music lover.',
-        photos: ['https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg'],
-        location: {
-          latitude: 40.7128,
-          longitude: -74.0060,
-          city: 'New York',
-          country: 'USA'
-        },
-        preferences: {
-          ageRange: [22, 30],
-          maxDistance: 25,
-          interestedIn: ['male'],
-          lookingFor: 'both'
-        },
-        interests: ['Art', 'Music', 'Travel'],
-        isVerified: true,
-        lastActive: new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      },
-      lastMessage: {
-        id: 'msg1',
-        matchId: '1',
-        senderId: 'user1',
-        content: 'That playlist you shared is amazing! I love discovering new artists through music.',
-        type: 'text',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        isRead: false,
-        canReply: true
-      }
-    },
-    {
-      id: '2',
-      participants: ['current_user', 'user2'],
-      isSlowChat: false,
-      slowChatDelay: 0,
-      unreadCount: 0,
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      user: {
-        id: 'user2',
-        email: 'james@example.com',
-        name: 'James',
-        age: 28,
-        gender: 'male',
-        bio: 'Software developer and musician.',
-        photos: ['https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg'],
-        location: {
-          latitude: 40.7589,
-          longitude: -73.9851,
-          city: 'New York',
-          country: 'USA'
-        },
-        preferences: {
-          ageRange: [21, 32],
-          maxDistance: 30,
-          interestedIn: ['female'],
-          lookingFor: 'dating'
-        },
-        interests: ['Music', 'Technology', 'Coffee'],
-        isVerified: true,
-        lastActive: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString()
-      },
-      lastMessage: {
-        id: 'msg2',
-        matchId: '2',
-        senderId: 'current_user',
-        content: 'Would love to check out that coffee shop you mentioned!',
-        type: 'text',
-        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        isRead: true,
-        canReply: true
-      }
-    }
-  ];
-
-  // Mock messages for selected chat
-  const mockMessages: Message[] = [
-    {
-      id: 'msg1',
-      matchId: '1',
-      senderId: 'current_user',
-      content: 'Hey Emma! I saw we have a 92% music compatibility. That\'s amazing!',
-      type: 'text',
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      isRead: true,
-      canReply: true
-    },
-    {
-      id: 'msg2',
-      matchId: '1',
-      senderId: 'user1',
-      content: 'I know right! I love your taste in indie pop. Have you heard the new Phoebe Bridgers album?',
-      type: 'text',
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-      isRead: true,
-      canReply: true
-    },
-    {
-      id: 'msg3',
-      matchId: '1',
-      senderId: 'current_user',
-      content: 'Yes! It\'s incredible. I actually made a playlist inspired by it. Want me to share it?',
-      type: 'text',
-      timestamp: new Date(Date.now() - 2.5 * 60 * 60 * 1000).toISOString(),
-      isRead: true,
-      canReply: true
-    },
-    {
-      id: 'msg4',
-      matchId: '1',
-      senderId: 'user1',
-      content: 'That playlist you shared is amazing! I love discovering new artists through music.',
-      type: 'text',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      isRead: false,
-      canReply: true,
-      nextReplyTime: new Date(Date.now() + 28 * 60 * 1000).toISOString()
-    }
-  ];
-
-  const selectedConversation = mockConversations.find(c => c.id === selectedChat);
+  const selectedConversation = conversations.find(c => c.id === selectedChat);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
     
-    console.log('Sending message:', newMessage);
+    sendMessage(newMessage);
     setNewMessage('');
-    // Handle send message logic
   };
 
   const formatTime = (timestamp: string) => {
@@ -178,6 +43,17 @@ const ChatPage: React.FC = () => {
     return `${Math.ceil(diffInMinutes / 60)}h`;
   };
 
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-glow mx-auto mb-4"></div>
+          <h2 className="text-xl font-playfair font-bold mb-2">Loading conversations...</h2>
+        </div>
+      </div>
+    );
+  }
+
   if (!selectedChat) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -187,7 +63,7 @@ const ChatPage: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          {mockConversations.map((conversation) => (
+          {conversations.map((conversation) => (
             <Card
               key={conversation.id}
               className="shadow-card hover-lift cursor-pointer transition-smooth"
@@ -196,53 +72,47 @@ const ChatPage: React.FC = () => {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src={conversation.user.photos[0]} />
+                    <AvatarImage src={conversation.otherUser?.user_photos?.[0]?.photo_url} />
                     <AvatarFallback className="bg-primary/10 text-primary-glow">
-                      {conversation.user.name.charAt(0)}
+                      {conversation.otherUser?.name?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="font-semibold flex items-center gap-2">
-                        {conversation.user.name}
-                        {conversation.user.isVerified && (
+                        {conversation.otherUser?.name || 'Unknown'}
+                        {conversation.otherUser?.is_verified && (
                           <div className="w-4 h-4 bg-primary-glow rounded-full flex items-center justify-center">
                             <span className="text-white text-xs">✓</span>
                           </div>
                         )}
                       </h3>
                       <div className="flex items-center gap-2">
-                        {conversation.isSlowChat && (
+                        {conversation.is_slow_chat && (
                           <Badge variant="outline" className="text-xs">
                             <Clock className="h-3 w-3 mr-1" />
                             Slow Chat
                           </Badge>
                         )}
                         <span className="text-xs text-muted-foreground">
-                          {formatTime(conversation.lastMessage.timestamp)}
+                          {conversation.lastMessage ? formatTime(conversation.lastMessage.created_at) : ''}
                         </span>
                       </div>
                     </div>
 
                     <p className="text-sm text-muted-foreground truncate">
-                      {conversation.lastMessage.senderId === 'current_user' ? 'You: ' : ''}
-                      {conversation.lastMessage.content}
+                      {conversation.lastMessage?.content || 'No messages yet'}
                     </p>
                   </div>
 
-                  {conversation.unreadCount > 0 && (
-                    <div className="w-5 h-5 bg-primary-glow rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs">{conversation.unreadCount}</span>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {mockConversations.length === 0 && (
+        {conversations.length === 0 && (
           <div className="text-center py-12">
             <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No conversations yet</h3>
@@ -264,34 +134,35 @@ const ChatPage: React.FC = () => {
               size="sm"
               onClick={() => setSelectedChat(null)}
             >
-              ← Back
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
             </Button>
             
             <Avatar className="h-10 w-10">
-              <AvatarImage src={selectedConversation?.user.photos[0]} />
+              <AvatarImage src={selectedConversation?.otherUser?.user_photos?.[0]?.photo_url} />
               <AvatarFallback className="bg-primary/10 text-primary-glow">
-                {selectedConversation?.user.name.charAt(0)}
+                {selectedConversation?.otherUser?.name?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
 
             <div className="flex-1">
               <h2 className="font-semibold flex items-center gap-2">
-                {selectedConversation?.user.name}
-                {selectedConversation?.user.isVerified && (
+                {selectedConversation?.otherUser?.name || 'Unknown'}
+                {selectedConversation?.otherUser?.is_verified && (
                   <div className="w-4 h-4 bg-primary-glow rounded-full flex items-center justify-center">
                     <span className="text-white text-xs">✓</span>
                   </div>
                 )}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {selectedConversation?.user.location.city}
+                {selectedConversation?.otherUser?.location_city || 'Location unknown'}
               </p>
             </div>
 
-            {selectedConversation?.isSlowChat && (
+            {selectedConversation?.is_slow_chat && (
               <Badge variant="outline" className="text-xs">
                 <Clock className="h-3 w-3 mr-1" />
-                Slow Chat ({selectedConversation.slowChatDelay}min)
+                Slow Chat ({selectedConversation.slow_chat_delay}min)
               </Badge>
             )}
           </div>
@@ -301,14 +172,14 @@ const ChatPage: React.FC = () => {
       {/* Messages */}
       <Card className="shadow-card mb-4">
         <CardContent className="p-4 space-y-4 max-h-96 overflow-y-auto">
-          {mockMessages.map((message) => (
+          {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex ${message.senderId === 'current_user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${message.sender_id === selectedConversation?.otherUser?.id ? 'justify-start' : 'justify-end'}`}
             >
               <div
                 className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  message.senderId === 'current_user'
+                  message.sender_id !== selectedConversation?.otherUser?.id
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted'
                 }`}
@@ -316,12 +187,12 @@ const ChatPage: React.FC = () => {
                 <p className="text-sm">{message.content}</p>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-xs opacity-70">
-                    {formatTime(message.timestamp)}
+                    {formatTime(message.created_at)}
                   </span>
-                  {message.nextReplyTime && message.senderId !== 'current_user' && (
+                  {message.next_reply_time && message.sender_id === selectedConversation?.otherUser?.id && (
                     <span className="text-xs opacity-70 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      Reply in {getNextReplyTime(message.nextReplyTime)}
+                      Reply in {getNextReplyTime(message.next_reply_time)}
                     </span>
                   )}
                 </div>
@@ -341,7 +212,7 @@ const ChatPage: React.FC = () => {
             
             <Input
               placeholder={
-                selectedConversation?.isSlowChat 
+                selectedConversation?.is_slow_chat 
                   ? "Take your time crafting a thoughtful message..."
                   : "Type a message..."
               }
@@ -360,7 +231,7 @@ const ChatPage: React.FC = () => {
             </Button>
           </div>
 
-          {selectedConversation?.isSlowChat && (
+          {selectedConversation?.is_slow_chat && (
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
               <Heart className="h-3 w-3" />
               Slow chat mode encourages thoughtful conversations. Take your time!

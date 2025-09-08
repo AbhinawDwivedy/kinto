@@ -1,135 +1,59 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, X, MapPin, Music, Instagram, AlignJustify as Spotify } from 'lucide-react';
-import { User } from '@/types';
-import { useAuth } from '@/contexts/AuthContext';
-import { MatchingAlgorithm } from '@/lib/matching-algorithm';
+import { Heart, X, MapPin, Music, Instagram, AlignJustify as Spotify, Star, Info } from 'lucide-react';
+import { useMatching } from '@/hooks/useMatching';
+import { useLocation } from '@/hooks/useLocation';
 
 const DiscoverPage: React.FC = () => {
-  const { profile } = useAuth();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [potentialMatches, setPotentialMatches] = useState<User[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const { currentMatch, loading, likeUser, passUser, superLikeUser, hasMoreMatches, refreshMatches } = useMatching();
+  const { latitude, longitude, error: locationError } = useLocation();
 
-  // Mock data for demonstration
-  useEffect(() => {
-    const mockUsers: User[] = [
-      {
-        id: '1',
-        email: 'sarah@example.com',
-        name: 'Sarah',
-        age: 24,
-        gender: 'female',
-        bio: 'Music lover, coffee enthusiast, and adventure seeker. Always up for discovering new artists and hidden gems in the city.',
-        photos: ['https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg'],
-        location: {
-          latitude: 40.7128,
-          longitude: -74.0060,
-          city: 'New York',
-          country: 'USA'
-        },
-        preferences: {
-          ageRange: [22, 30],
-          maxDistance: 25,
-          interestedIn: ['male'],
-          lookingFor: 'both'
-        },
-        interests: ['Music', 'Coffee', 'Travel', 'Photography', 'Art'],
-        spotify: {
-          id: 'sarah_spotify',
-          topArtists: ['Taylor Swift', 'Billie Eilish', 'The Weeknd'],
-          topGenres: ['Pop', 'Indie', 'Alternative'],
-          topTracks: ['Anti-Hero', 'Bad Guy', 'Blinding Lights'],
-          playlists: []
-        },
-        isVerified: true,
-        lastActive: new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: '2',
-        email: 'alex@example.com',
-        name: 'Alex',
-        age: 26,
-        gender: 'male',
-        bio: 'Indie rock enthusiast and weekend hiker. Looking for someone to share playlists and explore the city with.',
-        photos: ['https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg'],
-        location: {
-          latitude: 40.7589,
-          longitude: -73.9851,
-          city: 'New York',
-          country: 'USA'
-        },
-        preferences: {
-          ageRange: [21, 28],
-          maxDistance: 30,
-          interestedIn: ['female'],
-          lookingFor: 'dating'
-        },
-        interests: ['Music', 'Hiking', 'Photography', 'Food', 'Movies'],
-        spotify: {
-          id: 'alex_spotify',
-          topArtists: ['Arctic Monkeys', 'Tame Impala', 'Mac DeMarco'],
-          topGenres: ['Indie Rock', 'Alternative', 'Psychedelic'],
-          topTracks: ['Do I Wanna Know?', 'The Less I Know The Better', 'Chamber of Reflection'],
-          playlists: []
-        },
-        isVerified: true,
-        lastActive: new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      }
-    ];
-
-    if (profile) {
-      const matches = MatchingAlgorithm.findPotentialMatches(profile as User, mockUsers);
-      setPotentialMatches(matches);
-    }
-  }, [profile]);
-
-  const currentMatch = potentialMatches[currentIndex];
-
-  const handleLike = () => {
-    // Handle like logic
-    console.log('Liked:', currentMatch?.name);
-    nextCard();
-  };
-
-  const handlePass = () => {
-    // Handle pass logic
-    console.log('Passed:', currentMatch?.name);
-    nextCard();
-  };
-
-  const nextCard = () => {
-    if (currentIndex < potentialMatches.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      // No more cards
-      setCurrentIndex(0);
-    }
-  };
-
-  if (!currentMatch) {
+  if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
-          <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-2xl font-playfair font-bold mb-2">No more profiles</h2>
-          <p className="text-muted-foreground">Check back later for new people to discover!</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-glow mx-auto mb-4"></div>
+          <h2 className="text-xl font-playfair font-bold mb-2">Finding your perfect matches...</h2>
+          <p className="text-muted-foreground">This might take a moment</p>
         </div>
       </div>
     );
   }
 
-  const compatibility = MatchingAlgorithm.calculateCompatibility(profile as User, currentMatch);
+  if (!hasMoreMatches || !currentMatch) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-playfair font-bold mb-2">No more profiles</h2>
+          <p className="text-muted-foreground mb-4">Check back later for new people to discover!</p>
+          <Button onClick={refreshMatches} className="bg-gradient-primary">
+            Refresh Matches
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleLike = () => likeUser(currentMatch.id);
+  const handlePass = () => passUser(currentMatch.id);
+  const handleSuperLike = () => superLikeUser(currentMatch.id);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-md">
       <div className="mb-6">
         <h1 className="text-2xl font-playfair font-bold mb-2">Discover</h1>
-        <p className="text-muted-foreground">Find your perfect match through music and vibes</p>
+        <div className="flex items-center justify-between">
+          <p className="text-muted-foreground">Find your perfect match through music and vibes</p>
+          {locationError && (
+            <div className="flex items-center text-yellow-500 text-xs">
+              <Info className="h-3 w-3 mr-1" />
+              Location disabled
+            </div>
+          )}
+        </div>
       </div>
 
       <Card className="shadow-card hover-lift overflow-hidden">
@@ -140,10 +64,17 @@ const DiscoverPage: React.FC = () => {
             className="w-full h-96 object-cover"
           />
           <div className="absolute top-4 right-4">
-            <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
-              {compatibility.overall}% Match
+            <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm">
+              {currentMatch.compatibilityScore || 0}% Match
             </Badge>
           </div>
+          {currentMatch.distance && (
+            <div className="absolute top-4 left-4">
+              <Badge variant="outline" className="bg-background/90 backdrop-blur-sm">
+                {Math.round(currentMatch.distance)}km away
+              </Badge>
+            </div>
+          )}
         </div>
 
         <CardContent className="p-6">
@@ -163,7 +94,7 @@ const DiscoverPage: React.FC = () => {
 
           <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4" />
-            <span>{currentMatch.location.city}</span>
+            <span>{currentMatch.location?.city || 'Location not set'}</span>
           </div>
 
           <p className="text-sm mb-4 leading-relaxed">{currentMatch.bio}</p>
@@ -172,14 +103,16 @@ const DiscoverPage: React.FC = () => {
             <div>
               <h4 className="font-semibold mb-2 flex items-center gap-2">
                 <Music className="h-4 w-4" />
-                Music Compatibility: {compatibility.music}%
+                Music Taste
               </h4>
               <div className="flex flex-wrap gap-1">
-                {currentMatch.spotify?.topGenres.slice(0, 3).map((genre) => (
+                {currentMatch.spotify?.topGenres?.slice(0, 3).map((genre) => (
                   <Badge key={genre} variant="outline" className="text-xs">
                     {genre}
                   </Badge>
-                ))}
+                )) || (
+                  <span className="text-xs text-muted-foreground">No music data</span>
+                )}
               </div>
             </div>
 
@@ -195,14 +128,16 @@ const DiscoverPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1">
-                <Spotify className="h-4 w-4 text-green-500" />
-                <span>Connected</span>
-              </div>
+              {currentMatch.spotify && (
+                <div className="flex items-center gap-1">
+                  <Spotify className="h-4 w-4 text-green-500" />
+                  <span>Spotify</span>
+                </div>
+              )}
               {currentMatch.instagram && (
                 <div className="flex items-center gap-1">
                   <Instagram className="h-4 w-4 text-pink-500" />
-                  <span>Connected</span>
+                  <span>Instagram</span>
                 </div>
               )}
             </div>
@@ -210,23 +145,38 @@ const DiscoverPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      <div className="flex justify-center gap-6 mt-8">
+      <div className="flex justify-center items-center gap-4 mt-8">
         <Button
           size="lg"
           variant="outline"
-          className="rounded-full w-16 h-16 border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+          className="rounded-full w-14 h-14 border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
           onClick={handlePass}
         >
-          <X className="h-6 w-6" />
+          <X className="h-5 w-5" />
         </Button>
         
         <Button
           size="lg"
-          className="rounded-full w-16 h-16 bg-gradient-primary hover:shadow-glow"
+          variant="outline"
+          className="rounded-full w-12 h-12 border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white"
+          onClick={handleSuperLike}
+        >
+          <Star className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          size="lg"
+          className="rounded-full w-14 h-14 bg-gradient-primary hover:shadow-glow"
           onClick={handleLike}
         >
-          <Heart className="h-6 w-6" />
+          <Heart className="h-5 w-5" />
         </Button>
+      </div>
+      
+      <div className="text-center mt-4">
+        <p className="text-xs text-muted-foreground">
+          Tap ❌ to pass • ⭐ to super like • ❤️ to like
+        </p>
       </div>
     </div>
   );
