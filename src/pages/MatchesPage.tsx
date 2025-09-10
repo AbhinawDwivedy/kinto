@@ -1,325 +1,264 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Heart, MessageCircle, Music, MapPin, Clock } from 'lucide-react';
-import { Match, User } from '@/types';
+import { Heart, X, MapPin, Music, Instagram, AlignJustify as Spotify, Star, Info } from 'lucide-react';
+import { useMatching } from '@/hooks/useMatching';
+import { useLocation } from '@/hooks/useLocation';
+import SwipeCard from '@/components/ui/SwipeCard';
+import MatchModal from '@/components/ui/MatchModal';
+import StoryViewer from '@/components/ui/StoryViewer';
+import { AnimationController } from '@/lib/animations';
+import { useAuth } from '@/contexts/AuthContext';
 
-const MatchesPage: React.FC = () => {
-  const [selectedTab, setSelectedTab] = useState('matches');
+const DiscoverPage: React.FC = () => {
+  const { user, profile } = useAuth();
+  const { potentialMatches, currentMatch, loading, likeUser, passUser, superLikeUser, hasMoreMatches, refreshMatches } = useMatching();
+  const { latitude, longitude, error: locationError } = useLocation();
+  const [showMatchModal, setShowMatchModal] = useState(false);
+  const [matchedUser, setMatchedUser] = useState<any>(null);
+  const [showStories, setShowStories] = useState(false);
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Mock matches data
-  const mockMatches: (Match & { user: User })[] = [
+  // Mock stories data
+  const stories = [
     {
       id: '1',
-      users: ['current_user', 'user1'],
-      compatibility: {
-        overall: 89,
-        music: 92,
-        interests: 85,
-        location: 90
-      },
-      status: 'matched',
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      user: {
-        id: 'user1',
-        email: 'emma@example.com',
-        name: 'Emma',
-        age: 25,
-        gender: 'female',
-        bio: 'Art enthusiast and music lover. Always looking for new adventures and great conversations.',
-        photos: ['https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg'],
-        location: {
-          latitude: 40.7128,
-          longitude: -74.0060,
-          city: 'New York',
-          country: 'USA'
-        },
-        preferences: {
-          ageRange: [22, 30],
-          maxDistance: 25,
-          interestedIn: ['male'],
-          lookingFor: 'both'
-        },
-        interests: ['Art', 'Music', 'Travel', 'Photography'],
-        spotify: {
-          id: 'emma_spotify',
-          topArtists: ['Lorde', 'Phoebe Bridgers', 'Clairo'],
-          topGenres: ['Indie Pop', 'Alternative', 'Dream Pop'],
-          topTracks: ['Solar Power', 'Motion Sickness', 'Pretty Girl'],
-          playlists: []
-        },
-        isVerified: true,
-        lastActive: new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      }
+      user: { id: '1', name: 'Emma', photo: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg' },
+      mediaUrl: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg',
+      mediaType: 'image' as const,
+      caption: 'Beautiful sunset today! 🌅',
+      timestamp: new Date().toISOString()
     },
     {
       id: '2',
-      users: ['current_user', 'user2'],
-      compatibility: {
-        overall: 76,
-        music: 82,
-        interests: 70,
-        location: 75
-      },
-      status: 'matched',
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      user: {
-        id: 'user2',
-        email: 'james@example.com',
-        name: 'James',
-        age: 28,
-        gender: 'male',
-        bio: 'Software developer by day, musician by night. Love discovering new bands and exploring the city.',
-        photos: ['https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg'],
-        location: {
-          latitude: 40.7589,
-          longitude: -73.9851,
-          city: 'New York',
-          country: 'USA'
-        },
-        preferences: {
-          ageRange: [21, 32],
-          maxDistance: 30,
-          interestedIn: ['female'],
-          lookingFor: 'dating'
-        },
-        interests: ['Music', 'Technology', 'Coffee', 'Movies'],
-        spotify: {
-          id: 'james_spotify',
-          topArtists: ['Radiohead', 'Bon Iver', 'The National'],
-          topGenres: ['Alternative Rock', 'Indie Folk', 'Post-Rock'],
-          topTracks: ['Paranoid Android', 'Holocene', 'Bloodbuzz Ohio'],
-          playlists: []
-        },
-        isVerified: true,
-        lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString()
+      user: { id: '2', name: 'James', photo: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg' },
+      mediaUrl: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg',
+      mediaType: 'image' as const,
+      caption: 'Coffee and coding ☕',
+      timestamp: new Date(Date.now() - 3600000).toISOString()
+    }
+  ];
+
+  useEffect(() => {
+    AnimationController.init();
+    if (containerRef.current) {
+      AnimationController.pageTransition(containerRef.current, 'in');
+    }
+  }, []);
+
+  const handleLike = async () => {
+    if (!currentMatch) return;
+    
+    try {
+      await likeUser(currentMatch.id);
+      
+      // Simulate match check (in real app, this would come from backend)
+      const isMatch = Math.random() > 0.7; // 30% chance of match
+      
+      if (isMatch) {
+        setMatchedUser(currentMatch);
+        setShowMatchModal(true);
+        
+        // Celebration animation
+        if (containerRef.current) {
+          AnimationController.matchCelebration(containerRef.current);
+        }
       }
+    } catch (error) {
+      console.error('Error liking user:', error);
     }
-  ];
+  };
 
-  // Mock likes data
-  const mockLikes: User[] = [
-    {
-      id: 'user3',
-      email: 'sophia@example.com',
-      name: 'Sophia',
-      age: 23,
-      gender: 'female',
-      bio: 'Dance enthusiast and foodie. Love trying new restaurants and dancing the night away.',
-      photos: ['https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg'],
-      location: {
-        latitude: 40.7505,
-        longitude: -73.9934,
-        city: 'New York',
-        country: 'USA'
-      },
-      preferences: {
-        ageRange: [20, 28],
-        maxDistance: 20,
-        interestedIn: ['male'],
-        lookingFor: 'both'
-      },
-      interests: ['Dancing', 'Food', 'Music', 'Fashion'],
-      isVerified: false,
-      lastActive: new Date().toISOString(),
-      createdAt: new Date().toISOString()
+  const handlePass = async () => {
+    if (!currentMatch) return;
+    await passUser(currentMatch.id);
+  };
+
+  const handleSuperLike = async () => {
+    if (!currentMatch) return;
+    await superLikeUser(currentMatch.id);
+    
+    // Show super like animation
+    if (containerRef.current) {
+      const star = document.createElement('div');
+      star.innerHTML = '⭐';
+      star.style.position = 'absolute';
+      star.style.fontSize = '60px';
+      star.style.left = '50%';
+      star.style.top = '50%';
+      star.style.transform = 'translate(-50%, -50%)';
+      star.style.pointerEvents = 'none';
+      star.style.zIndex = '1000';
+      containerRef.current.appendChild(star);
+      
+      AnimationController.floatingAnimation(star);
+      setTimeout(() => star.remove(), 2000);
     }
-  ];
-
-  const handleStartChat = (matchId: string) => {
-    console.log('Starting chat with match:', matchId);
-    // Navigate to chat
   };
 
-  const handleLikeBack = (userId: string) => {
-    console.log('Liking back user:', userId);
-    // Handle like back logic
+  const handleStoryClick = (index: number) => {
+    setSelectedStoryIndex(index);
+    setShowStories(true);
   };
 
-  const handlePass = (userId: string) => {
-    console.log('Passing on user:', userId);
-    // Handle pass logic
-  };
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8" ref={containerRef}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary-glow border-t-transparent mx-auto mb-4"></div>
+          <h2 className="text-xl font-playfair font-bold mb-2">Finding your perfect matches...</h2>
+          <p className="text-muted-foreground">Analyzing compatibility with nearby users</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasMoreMatches || !currentMatch) {
+    return (
+      <div className="container mx-auto px-4 py-8" ref={containerRef}>
+        <div className="text-center">
+          <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground animate-pulse" />
+          <h2 className="text-2xl font-playfair font-bold mb-2">No more profiles</h2>
+          <p className="text-muted-foreground mb-4">Check back later for new people to discover!</p>
+          <Button onClick={refreshMatches} className="bg-gradient-primary">
+            Refresh Matches
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-md" ref={containerRef}>
       <div className="mb-6">
-        <h1 className="text-2xl font-playfair font-bold mb-2">Matches</h1>
-        <p className="text-muted-foreground">Your connections and people who liked you</p>
+        <h1 className="text-2xl font-playfair font-bold mb-2">Discover</h1>
+        <div className="flex items-center justify-between">
+          <p className="text-muted-foreground">Find your perfect match through music and vibes</p>
+          {locationError && (
+            <div className="flex items-center text-yellow-500 text-xs">
+              <Info className="h-3 w-3 mr-1" />
+              Location disabled
+            </div>
+          )}
+        </div>
       </div>
 
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="matches">Matches ({mockMatches.length})</TabsTrigger>
-          <TabsTrigger value="likes">Likes ({mockLikes.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="matches" className="space-y-4 mt-6">
-          {mockMatches.map((match) => (
-            <Card key={match.id} className="shadow-card hover-lift overflow-hidden">
-              <CardContent className="p-0">
-                <div className="flex">
+      {/* Stories Section */}
+      <div className="mb-6">
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {stories.map((story, index) => (
+            <div
+              key={story.id}
+              className="flex-shrink-0 cursor-pointer"
+              onClick={() => handleStoryClick(index)}
+            >
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-500 p-0.5">
                   <img
-                    src={match.user.photos[0]}
-                    alt={match.user.name}
-                    className="w-24 h-24 object-cover"
+                    src={story.user.photo}
+                    alt={story.user.name}
+                    className="w-full h-full rounded-full object-cover border-2 border-background"
                   />
-                  <div className="flex-1 p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-semibold text-lg flex items-center gap-2">
-                          {match.user.name}
-                          {match.user.isVerified && (
-                            <div className="w-4 h-4 bg-primary-glow rounded-full flex items-center justify-center">
-                              <span className="text-white text-xs">✓</span>
-                            </div>
-                          )}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">{match.user.age} years old</p>
-                      </div>
-                      <Badge variant="secondary" className="bg-primary/10 text-primary-glow">
-                        {match.compatibility.overall}% Match
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        <span>{match.user.location.city}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Music className="h-3 w-3" />
-                        <span>{match.compatibility.music}% music match</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{new Date(match.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {match.user.bio}
-                    </p>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex gap-1">
-                        {match.user.interests.slice(0, 3).map((interest) => (
-                          <Badge key={interest} variant="outline" className="text-xs">
-                            {interest}
-                          </Badge>
-                        ))}
-                      </div>
-
-                      <Button
-                        size="sm"
-                        className="bg-gradient-primary hover:shadow-glow"
-                        onClick={() => handleStartChat(match.id)}
-                      >
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        Chat
-                      </Button>
-                    </div>
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-
-          {mockMatches.length === 0 && (
-            <div className="text-center py-12">
-              <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No matches yet</h3>
-              <p className="text-muted-foreground">Keep swiping to find your perfect match!</p>
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-background"></div>
+              </div>
+              <p className="text-xs text-center mt-1 text-muted-foreground truncate w-16">
+                {story.user.name}
+              </p>
             </div>
-          )}
-        </TabsContent>
+          ))}
+        </div>
+      </div>
 
-        <TabsContent value="likes" className="space-y-4 mt-6">
-          {mockLikes.map((user) => (
-            <Card key={user.id} className="shadow-card hover-lift overflow-hidden">
-              <CardContent className="p-0">
-                <div className="flex">
-                  <img
-                    src={user.photos[0]}
-                    alt={user.name}
-                    className="w-24 h-24 object-cover"
-                  />
-                  <div className="flex-1 p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-semibold text-lg flex items-center gap-2">
-                          {user.name}
-                          {user.isVerified && (
-                            <div className="w-4 h-4 bg-primary-glow rounded-full flex items-center justify-center">
-                              <span className="text-white text-xs">✓</span>
-                            </div>
-                          )}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">{user.age} years old</p>
-                      </div>
-                      <div className="flex items-center gap-1 text-primary-glow">
-                        <Heart className="h-4 w-4 fill-current" />
-                        <span className="text-sm font-medium">Liked you</span>
-                      </div>
-                    </div>
+            <span>{currentMatch.location?.city || 'Location not set'}</span>
+          </div>
 
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                      <MapPin className="h-3 w-3" />
-                      <span>{user.location.city}</span>
-                    </div>
+          <p className="text-sm mb-4 leading-relaxed">{currentMatch.bio}</p>
 
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {user.bio}
-                    </p>
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                <Music className="h-4 w-4" />
+                Music Taste
+              </h4>
+              <div className="flex flex-wrap gap-1">
+                {currentMatch.spotify?.topGenres?.slice(0, 3).map((genre) => (
+                  <Badge key={genre} variant="outline" className="text-xs">
+                    {genre}
+                  </Badge>
+                )) || (
+                  <span className="text-xs text-muted-foreground">No music data</span>
+                )}
+              </div>
+            </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex gap-1">
-                        {user.interests.slice(0, 3).map((interest) => (
-                          <Badge key={interest} variant="outline" className="text-xs">
-                            {interest}
-                          </Badge>
-                        ))}
-                      </div>
+            <div>
+              <h4 className="font-semibold mb-2">Interests</h4>
+              <div className="flex flex-wrap gap-1">
+                {currentMatch.interests.slice(0, 5).map((interest) => (
+                  <Badge key={interest} variant="outline" className="text-xs">
+                    {interest}
+                  </Badge>
+                ))}
+              </div>
+            </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handlePass(user.id)}
-                        >
-                          Pass
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-gradient-primary hover:shadow-glow"
-                          onClick={() => handleLikeBack(user.id)}
-                        >
-                          <Heart className="h-4 w-4 mr-2" />
-                          Like Back
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+            <div className="flex items-center gap-4 text-sm">
+              {currentMatch.spotify && (
+                <div className="flex items-center gap-1">
+                  <Spotify className="h-4 w-4 text-green-500" />
+                  <span>Spotify</span>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-
-          {mockLikes.length === 0 && (
-            <div className="text-center py-12">
-              <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No likes yet</h3>
-              <p className="text-muted-foreground">Keep being awesome! Someone will notice you soon.</p>
+              )}
+              {currentMatch.instagram && (
+                <div className="flex items-center gap-1">
+                  <Instagram className="h-4 w-4 text-pink-500" />
+                  <span>Instagram</span>
+                </div>
+              )}
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-center items-center gap-4 mt-8">
+        <Button
+          size="lg"
+          variant="outline"
+          className="rounded-full w-14 h-14 border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+          onClick={handlePass}
+        >
+          <X className="h-5 w-5" />
+        </Button>
+        
+        <Button
+          size="lg"
+          variant="outline"
+          className="rounded-full w-12 h-12 border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white"
+          onClick={handleSuperLike}
+        >
+          <Star className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          size="lg"
+          className="rounded-full w-14 h-14 bg-gradient-primary hover:shadow-glow"
+          onClick={handleLike}
+        >
+          <Heart className="h-5 w-5" />
+        </Button>
+      </div>
+      
+      <div className="text-center mt-4">
+        <p className="text-xs text-muted-foreground">
+          Tap ❌ to pass • ⭐ to super like • ❤️ to like
+        </p>
+      </div>
     </div>
   );
 };
 
-export default MatchesPage;
+export default DiscoverPage;

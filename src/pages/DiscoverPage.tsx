@@ -1,22 +1,144 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, X, MapPin, Music, Instagram, AlignJustify as Spotify, Star, Info } from 'lucide-react';
+import { Heart, X, MapPin, Music, Instagram, AlignJustify as Spotify, Star, Info, Zap, Camera } from 'lucide-react';
 import { useMatching } from '@/hooks/useMatching';
 import { useLocation } from '@/hooks/useLocation';
+import SwipeCard from '@/components/ui/SwipeCard';
+import MatchModal from '@/components/ui/MatchModal';
+import StoryViewer from '@/components/ui/StoryViewer';
+import { AnimationController } from '@/lib/animations';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DiscoverPage: React.FC = () => {
-  const { currentMatch, loading, likeUser, passUser, superLikeUser, hasMoreMatches, refreshMatches } = useMatching();
+  const { user, profile } = useAuth();
+  const { potentialMatches, currentMatch, loading, likeUser, passUser, superLikeUser, hasMoreMatches, refreshMatches } = useMatching();
   const { latitude, longitude, error: locationError } = useLocation();
+  const [showMatchModal, setShowMatchModal] = useState(false);
+  const [matchedUser, setMatchedUser] = useState<any>(null);
+  const [showStories, setShowStories] = useState(false);
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
+  const [boostActive, setBoostActive] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Mock stories data
+  const stories = [
+    {
+      id: '1',
+      user: { id: '1', name: 'Emma', photo: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg' },
+      mediaUrl: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg',
+      mediaType: 'image' as const,
+      caption: 'Beautiful sunset today! 🌅',
+      timestamp: new Date().toISOString()
+    },
+    {
+      id: '2',
+      user: { id: '2', name: 'James', photo: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg' },
+      mediaUrl: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg',
+      mediaType: 'image' as const,
+      caption: 'Coffee and coding ☕',
+      timestamp: new Date(Date.now() - 3600000).toISOString()
+    }
+  ];
+
+  useEffect(() => {
+    AnimationController.init();
+    if (containerRef.current) {
+      AnimationController.pageTransition(containerRef.current, 'in');
+    }
+  }, []);
+
+  const handleLike = async () => {
+    if (!currentMatch) return;
+    
+    try {
+      await likeUser(currentMatch.id);
+      
+      // Simulate match check (in real app, this would come from backend)
+      const isMatch = Math.random() > 0.7; // 30% chance of match
+      
+      if (isMatch) {
+        setMatchedUser(currentMatch);
+        setShowMatchModal(true);
+        
+        // Celebration animation
+        if (containerRef.current) {
+          AnimationController.matchCelebration(containerRef.current);
+        }
+      }
+    } catch (error) {
+      console.error('Error liking user:', error);
+    }
+  };
+
+  const handlePass = async () => {
+    if (!currentMatch) return;
+    await passUser(currentMatch.id);
+  };
+
+  const handleSuperLike = async () => {
+    if (!currentMatch) return;
+    await superLikeUser(currentMatch.id);
+    
+    // Show super like animation
+    if (containerRef.current) {
+      const star = document.createElement('div');
+      star.innerHTML = '⭐';
+      star.style.position = 'absolute';
+      star.style.fontSize = '60px';
+      star.style.left = '50%';
+      star.style.top = '50%';
+      star.style.transform = 'translate(-50%, -50%)';
+      star.style.pointerEvents = 'none';
+      star.style.zIndex = '1000';
+      containerRef.current.appendChild(star);
+      
+      AnimationController.floatingAnimation(star);
+      setTimeout(() => star.remove(), 2000);
+    }
+  };
+
+  const handleStoryClick = (index: number) => {
+    setSelectedStoryIndex(index);
+    setShowStories(true);
+  };
+
+  const handleBoost = () => {
+    setBoostActive(true);
+    // Boost animation
+    if (containerRef.current) {
+      const boost = document.createElement('div');
+      boost.innerHTML = '🚀';
+      boost.style.position = 'absolute';
+      boost.style.fontSize = '40px';
+      boost.style.left = '50%';
+      boost.style.top = '20%';
+      boost.style.transform = 'translate(-50%, -50%)';
+      boost.style.pointerEvents = 'none';
+      boost.style.zIndex = '1000';
+      containerRef.current.appendChild(boost);
+      
+      AnimationController.floatingAnimation(boost);
+      setTimeout(() => {
+        boost.remove();
+        setBoostActive(false);
+      }, 3000);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero" ref={containerRef}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-glow mx-auto mb-4"></div>
-          <h2 className="text-xl font-playfair font-bold mb-2">Finding your perfect matches...</h2>
-          <p className="text-muted-foreground">This might take a moment</p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-primary-glow border-t-transparent mx-auto mb-6"></div>
+            <Heart className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-primary-glow animate-pulse" />
+          </div>
+          <h2 className="text-2xl font-playfair font-bold mb-3 bg-gradient-to-r from-foreground to-primary-glow bg-clip-text text-transparent">
+            Finding your perfect matches
+          </h2>
+          <p className="text-muted-foreground animate-pulse">Analyzing compatibility with nearby users...</p>
         </div>
       </div>
     );
@@ -24,160 +146,197 @@ const DiscoverPage: React.FC = () => {
 
   if (!hasMoreMatches || !currentMatch) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-2xl font-playfair font-bold mb-2">No more profiles</h2>
-          <p className="text-muted-foreground mb-4">Check back later for new people to discover!</p>
-          <Button onClick={refreshMatches} className="bg-gradient-primary">
-            Refresh Matches
-          </Button>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero" ref={containerRef}>
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="relative mb-8">
+            <Heart className="h-24 w-24 mx-auto text-primary-glow animate-pulse" />
+            <div className="absolute -top-2 -right-2">
+              <Star className="h-8 w-8 text-yellow-500 animate-bounce" />
+            </div>
+          </div>
+          <h2 className="text-3xl font-playfair font-bold mb-4 bg-gradient-to-r from-foreground to-primary-glow bg-clip-text text-transparent">
+            You're all caught up!
+          </h2>
+          <p className="text-muted-foreground mb-8 leading-relaxed">
+            No more profiles in your area right now. Try expanding your distance or check back later for new people to discover!
+          </p>
+          <div className="space-y-4">
+            <Button 
+              onClick={refreshMatches} 
+              className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300 hover:scale-105"
+              size="lg"
+            >
+              <Zap className="h-5 w-5 mr-2" />
+              Refresh Matches
+            </Button>
+            <Button 
+              onClick={handleBoost}
+              variant="outline" 
+              className="w-full border-primary-glow text-primary-glow hover:bg-primary-glow hover:text-white transition-all duration-300"
+              size="lg"
+            >
+              <Star className="h-5 w-5 mr-2" />
+              Boost My Profile
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
-  const handleLike = () => likeUser(currentMatch.id);
-  const handlePass = () => passUser(currentMatch.id);
-  const handleSuperLike = () => superLikeUser(currentMatch.id);
-
   return (
-    <div className="container mx-auto px-4 py-8 max-w-md">
-      <div className="mb-6">
-        <h1 className="text-2xl font-playfair font-bold mb-2">Discover</h1>
-        <div className="flex items-center justify-between">
-          <p className="text-muted-foreground">Find your perfect match through music and vibes</p>
-          {locationError && (
-            <div className="flex items-center text-yellow-500 text-xs">
-              <Info className="h-3 w-3 mr-1" />
-              Location disabled
-            </div>
-          )}
-        </div>
-      </div>
-
-      <Card className="shadow-card hover-lift overflow-hidden">
-        <div className="relative">
-          <img
-            src={currentMatch.photos[0]}
-            alt={currentMatch.name}
-            className="w-full h-96 object-cover"
-          />
-          <div className="absolute top-4 right-4">
-            <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm">
-              {currentMatch.compatibilityScore || 0}% Match
-            </Badge>
+    <div className="min-h-screen bg-gradient-hero" ref={containerRef}>
+      <div className="container mx-auto px-4 py-8 max-w-md">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-playfair font-bold bg-gradient-to-r from-foreground to-primary-glow bg-clip-text text-transparent">
+              Discover
+            </h1>
+            <p className="text-muted-foreground">Find your perfect match through music and vibes</p>
           </div>
-          {currentMatch.distance && (
-            <div className="absolute top-4 left-4">
-              <Badge variant="outline" className="bg-background/90 backdrop-blur-sm">
-                {Math.round(currentMatch.distance)}km away
-              </Badge>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {locationError && (
+              <div className="flex items-center text-yellow-500 text-xs bg-yellow-500/10 px-2 py-1 rounded-full">
+                <Info className="h-3 w-3 mr-1" />
+                Location disabled
+              </div>
+            )}
+            {boostActive && (
+              <div className="flex items-center text-primary-glow text-xs bg-primary-glow/10 px-2 py-1 rounded-full animate-pulse">
+                <Zap className="h-3 w-3 mr-1" />
+                Boosted
+              </div>
+            )}
+          </div>
         </div>
 
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-2xl font-playfair font-bold flex items-center gap-2">
-                {currentMatch.name}
-                {currentMatch.isVerified && (
-                  <div className="w-5 h-5 bg-primary-glow rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">✓</span>
+        {/* Stories Section */}
+        <div className="mb-8">
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            {/* Add Story */}
+            <div className="flex-shrink-0 cursor-pointer group">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-muted to-muted/50 border-2 border-dashed border-muted-foreground/30 flex items-center justify-center group-hover:border-primary-glow transition-all duration-300">
+                  <Camera className="h-6 w-6 text-muted-foreground group-hover:text-primary-glow transition-colors" />
+                </div>
+              </div>
+              <p className="text-xs text-center mt-2 text-muted-foreground">Your Story</p>
+            </div>
+
+            {stories.map((story, index) => (
+              <div
+                key={story.id}
+                className="flex-shrink-0 cursor-pointer group"
+                onClick={() => handleStoryClick(index)}
+              >
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-yellow-500 p-0.5 group-hover:scale-110 transition-transform duration-300">
+                    <img
+                      src={story.user.photo}
+                      alt={story.user.name}
+                      className="w-full h-full rounded-full object-cover border-2 border-background"
+                    />
                   </div>
-                )}
-              </h3>
-              <p className="text-muted-foreground">{currentMatch.age} years old</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            <span>{currentMatch.location?.city || 'Location not set'}</span>
-          </div>
-
-          <p className="text-sm mb-4 leading-relaxed">{currentMatch.bio}</p>
-
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-semibold mb-2 flex items-center gap-2">
-                <Music className="h-4 w-4" />
-                Music Taste
-              </h4>
-              <div className="flex flex-wrap gap-1">
-                {currentMatch.spotify?.topGenres?.slice(0, 3).map((genre) => (
-                  <Badge key={genre} variant="outline" className="text-xs">
-                    {genre}
-                  </Badge>
-                )) || (
-                  <span className="text-xs text-muted-foreground">No music data</span>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-2">Interests</h4>
-              <div className="flex flex-wrap gap-1">
-                {currentMatch.interests.slice(0, 5).map((interest) => (
-                  <Badge key={interest} variant="outline" className="text-xs">
-                    {interest}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 text-sm">
-              {currentMatch.spotify && (
-                <div className="flex items-center gap-1">
-                  <Spotify className="h-4 w-4 text-green-500" />
-                  <span>Spotify</span>
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-background animate-pulse"></div>
                 </div>
-              )}
-              {currentMatch.instagram && (
-                <div className="flex items-center gap-1">
-                  <Instagram className="h-4 w-4 text-pink-500" />
-                  <span>Instagram</span>
-                </div>
-              )}
-            </div>
+                <p className="text-xs text-center mt-2 text-muted-foreground truncate w-16 group-hover:text-foreground transition-colors">
+                  {story.user.name}
+                </p>
+              </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <div className="flex justify-center items-center gap-4 mt-8">
-        <Button
-          size="lg"
-          variant="outline"
-          className="rounded-full w-14 h-14 border-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-          onClick={handlePass}
-        >
-          <X className="h-5 w-5" />
-        </Button>
+        {/* Main Swipe Card */}
+        <div className="relative">
+          <SwipeCard
+            user={currentMatch}
+            onLike={handleLike}
+            onPass={handlePass}
+            onSuperLike={handleSuperLike}
+            className="mb-8"
+          />
+        </div>
+
+        {/* Quick Actions */}
+        <div className="flex justify-center items-center gap-6 mb-6">
+          <Button
+            size="lg"
+            variant="outline"
+            className="rounded-full w-16 h-16 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 hover:scale-110 shadow-lg hover:shadow-red-500/25"
+            onClick={handlePass}
+          >
+            <X className="h-7 w-7" />
+          </Button>
+          
+          <Button
+            size="lg"
+            variant="outline"
+            className="rounded-full w-14 h-14 border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white transition-all duration-300 hover:scale-110 shadow-lg hover:shadow-yellow-500/25"
+            onClick={handleSuperLike}
+          >
+            <Star className="h-6 w-6" />
+          </Button>
+          
+          <Button
+            size="lg"
+            className="rounded-full w-16 h-16 bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 hover:from-pink-600 hover:via-red-600 hover:to-orange-600 transition-all duration-300 hover:scale-110 shadow-lg hover:shadow-pink-500/25"
+            onClick={handleLike}
+          >
+            <Heart className="h-7 w-7" />
+          </Button>
+        </div>
         
-        <Button
-          size="lg"
-          variant="outline"
-          className="rounded-full w-12 h-12 border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white"
-          onClick={handleSuperLike}
-        >
-          <Star className="h-4 w-4" />
-        </Button>
-        
-        <Button
-          size="lg"
-          className="rounded-full w-14 h-14 bg-gradient-primary hover:shadow-glow"
-          onClick={handleLike}
-        >
-          <Heart className="h-5 w-5" />
-        </Button>
+        {/* Action Labels */}
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground flex items-center justify-center gap-4">
+            <span className="flex items-center gap-1">
+              <X className="h-3 w-3 text-red-500" />
+              Pass
+            </span>
+            <span className="flex items-center gap-1">
+              <Star className="h-3 w-3 text-yellow-500" />
+              Super Like
+            </span>
+            <span className="flex items-center gap-1">
+              <Heart className="h-3 w-3 text-pink-500" />
+              Like
+            </span>
+          </p>
+        </div>
       </div>
-      
-      <div className="text-center mt-4">
-        <p className="text-xs text-muted-foreground">
-          Tap ❌ to pass • ⭐ to super like • ❤️ to like
-        </p>
-      </div>
+
+      {/* Match Modal */}
+      {showMatchModal && matchedUser && profile && (
+        <MatchModal
+          isOpen={showMatchModal}
+          onClose={() => setShowMatchModal(false)}
+          currentUser={{
+            name: profile.name || 'You',
+            photo: profile.photos?.[0] || 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg'
+          }}
+          matchedUser={{
+            name: matchedUser.name,
+            photo: matchedUser.photos?.[0] || 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg'
+          }}
+          onSendMessage={() => {
+            setShowMatchModal(false);
+            // Navigate to chat
+          }}
+          onKeepSwiping={() => setShowMatchModal(false)}
+        />
+      )}
+
+      {/* Story Viewer */}
+      <StoryViewer
+        stories={stories}
+        initialIndex={selectedStoryIndex}
+        isOpen={showStories}
+        onClose={() => setShowStories(false)}
+        onLike={(storyId) => console.log('Liked story:', storyId)}
+        onMessage={(userId) => console.log('Message user:', userId)}
+      />
     </div>
   );
 };
