@@ -1,334 +1,344 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Calendar, MapPin, Users, Clock, Search, Plus, Filter, Star } from 'lucide-react';
-import { useEvents } from '@/hooks/useEvents';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Heart, X, MapPin, Music, Instagram, AlignJustify as Spotify, Star, Info, Zap, Camera } from 'lucide-react';
+import { useMatching } from '@/hooks/useMatching';
+import { useLocation } from '@/hooks/useLocation';
+import SwipeCard from '@/components/ui/SwipeCard';
+import MatchModal from '@/components/ui/MatchModal';
+import StoryViewer from '@/components/ui/StoryViewer';
+import { AnimationController } from '@/lib/animations';
+import { useAuth } from '@/contexts/AuthContext';
 
-const EventsPage: React.FC = () => {
-  const { events, loading, joinEvent, leaveEvent, createEvent } = useEvents();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [newEvent, setNewEvent] = useState({
-    title: '',
-    description: '',
-    type: 'casual' as any,
-    location: { address: '', venue: '' },
-    date: '',
-    time: '',
-    maxAttendees: '',
-    isPrivate: false,
-  });
+const DiscoverPage: React.FC = () => {
+  const { user, profile } = useAuth();
+  const { potentialMatches, currentMatch, loading, likeUser, passUser, superLikeUser, hasMoreMatches, refreshMatches } = useMatching();
+  const { latitude, longitude, error: locationError } = useLocation();
+  const [showMatchModal, setShowMatchModal] = useState(false);
+  const [matchedUser, setMatchedUser] = useState<any>(null);
+  const [showStories, setShowStories] = useState(false);
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
+  const [boostActive, setBoostActive] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-
-  const categories = [
-    { id: 'all', label: 'All Events' },
-    { id: 'party', label: 'Parties' },
-    { id: 'casual', label: 'Casual' },
-    { id: 'sports', label: 'Sports' },
-    { id: 'cultural', label: 'Cultural' },
-    { id: 'food', label: 'Food' },
-    { id: 'nightlife', label: 'Nightlife' }
+  // Mock stories data
+  const stories = [
+    {
+      id: '1',
+      user: { id: '1', name: 'Emma', photo: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg' },
+      mediaUrl: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg',
+      mediaType: 'image' as const,
+      caption: 'Beautiful sunset today! 🌅',
+      timestamp: new Date().toISOString()
+    },
+    {
+      id: '2',
+      user: { id: '2', name: 'James', photo: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg' },
+      mediaUrl: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg',
+      mediaType: 'image' as const,
+      caption: 'Coffee and coding ☕',
+      timestamp: new Date(Date.now() - 3600000).toISOString()
+    }
   ];
 
-  const filteredEvents = events.filter(event => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || event.type === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  useEffect(() => {
+    AnimationController.init();
+    if (containerRef.current) {
+      AnimationController.pageTransition(containerRef.current, 'in');
+    }
+  }, []);
 
-  const handleJoinEvent = (eventId: string) => {
-    joinEvent(eventId, 'going');
-  };
-
-  const handleInterestedEvent = (eventId: string) => {
-    joinEvent(eventId, 'interested');
-  };
-
-  const handleCreateEvent = async () => {
+  const handleLike = async () => {
+    if (!currentMatch) return;
+    
     try {
-      await createEvent({
-        ...newEvent,
-        maxAttendees: newEvent.maxAttendees ? parseInt(newEvent.maxAttendees) : undefined,
-      });
-      setShowCreateDialog(false);
-      setNewEvent({
-        title: '',
-        description: '',
-        type: 'casual',
-        location: { address: '', venue: '' },
-        date: '',
-        time: '',
-        maxAttendees: '',
-        isPrivate: false,
-      });
+      await likeUser(currentMatch.id);
+      
+      // Simulate match check (in real app, this would come from backend)
+      const isMatch = Math.random() > 0.7; // 30% chance of match
+      
+      if (isMatch) {
+        setMatchedUser(currentMatch);
+        setShowMatchModal(true);
+        
+        // Celebration animation
+        if (containerRef.current) {
+          AnimationController.matchCelebration(containerRef.current);
+        }
+      }
     } catch (error) {
-      console.error('Failed to create event:', error);
+      console.error('Error liking user:', error);
+    }
+  };
+
+  const handlePass = async () => {
+    if (!currentMatch) return;
+    await passUser(currentMatch.id);
+  };
+
+  const handleSuperLike = async () => {
+    if (!currentMatch) return;
+    await superLikeUser(currentMatch.id);
+    
+    // Show super like animation
+    if (containerRef.current) {
+      const star = document.createElement('div');
+      star.innerHTML = '⭐';
+      star.style.position = 'absolute';
+      star.style.fontSize = '60px';
+      star.style.left = '50%';
+      star.style.top = '50%';
+      star.style.transform = 'translate(-50%, -50%)';
+      star.style.pointerEvents = 'none';
+      star.style.zIndex = '1000';
+      containerRef.current.appendChild(star);
+      
+      AnimationController.floatingAnimation(star);
+      setTimeout(() => star.remove(), 2000);
+    }
+  };
+
+  const handleStoryClick = (index: number) => {
+    setSelectedStoryIndex(index);
+    setShowStories(true);
+  };
+
+  const handleBoost = () => {
+    setBoostActive(true);
+    // Boost animation
+    if (containerRef.current) {
+      const boost = document.createElement('div');
+      boost.innerHTML = '🚀';
+      boost.style.position = 'absolute';
+      boost.style.fontSize = '40px';
+      boost.style.left = '50%';
+      boost.style.top = '20%';
+      boost.style.transform = 'translate(-50%, -50%)';
+      boost.style.pointerEvents = 'none';
+      boost.style.zIndex = '1000';
+      containerRef.current.appendChild(boost);
+      
+      AnimationController.floatingAnimation(boost);
+      setTimeout(() => {
+        boost.remove();
+        setBoostActive(false);
+      }, 3000);
     }
   };
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero" ref={containerRef}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-glow mx-auto mb-4"></div>
-          <h2 className="text-xl font-playfair font-bold mb-2">Loading events...</h2>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-primary-glow border-t-transparent mx-auto mb-6"></div>
+            <Heart className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-primary-glow animate-pulse" />
+          </div>
+          <h2 className="text-2xl font-playfair font-bold mb-3 bg-gradient-to-r from-foreground to-primary-glow bg-clip-text text-transparent">
+            Finding your perfect matches
+          </h2>
+          <p className="text-muted-foreground animate-pulse">Analyzing compatibility with nearby users...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasMoreMatches || !currentMatch) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero" ref={containerRef}>
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="relative mb-8">
+            <Heart className="h-24 w-24 mx-auto text-primary-glow animate-pulse" />
+            <div className="absolute -top-2 -right-2">
+              <Star className="h-8 w-8 text-yellow-500 animate-bounce" />
+            </div>
+          </div>
+          <h2 className="text-3xl font-playfair font-bold mb-4 bg-gradient-to-r from-foreground to-primary-glow bg-clip-text text-transparent">
+            You're all caught up!
+          </h2>
+          <p className="text-muted-foreground mb-8 leading-relaxed">
+            No more profiles in your area right now. Try expanding your distance or check back later for new people to discover!
+          </p>
+          <div className="space-y-4">
+            <Button 
+              onClick={refreshMatches} 
+              className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300 hover:scale-105"
+              size="lg"
+            >
+              <Zap className="h-5 w-5 mr-2" />
+              Refresh Matches
+            </Button>
+            <Button 
+              onClick={handleBoost}
+              variant="outline" 
+              className="w-full border-primary-glow text-primary-glow hover:bg-primary-glow hover:text-white transition-all duration-300"
+              size="lg"
+            >
+              <Star className="h-5 w-5 mr-2" />
+              Boost My Profile
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-playfair font-bold mb-2">Events</h1>
-          <p className="text-muted-foreground">Discover and join local events</p>
+    <div className="min-h-screen bg-gradient-hero" ref={containerRef}>
+      <div className="container mx-auto px-4 py-8 max-w-md">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-playfair font-bold bg-gradient-to-r from-foreground to-primary-glow bg-clip-text text-transparent">
+              Discover
+            </h1>
+            <p className="text-muted-foreground">Find your perfect match through music and vibes</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {locationError && (
+              <div className="flex items-center text-yellow-500 text-xs bg-yellow-500/10 px-2 py-1 rounded-full">
+                <Info className="h-3 w-3 mr-1" />
+                Location disabled
+              </div>
+            )}
+            {boostActive && (
+              <div className="flex items-center text-primary-glow text-xs bg-primary-glow/10 px-2 py-1 rounded-full animate-pulse">
+                <Zap className="h-3 w-3 mr-1" />
+                Boosted
+              </div>
+            )}
+          </div>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-primary hover:shadow-glow">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Event
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create New Event</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title">Event Title</Label>
-                <Input
-                  id="title"
-                  value={newEvent.title}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Enter event title"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={newEvent.description}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe your event"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="type">Event Type</Label>
-                <Select value={newEvent.type} onValueChange={(value: any) => setNewEvent(prev => ({ ...prev, type: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="party">Party</SelectItem>
-                    <SelectItem value="casual">Casual</SelectItem>
-                    <SelectItem value="sports">Sports</SelectItem>
-                    <SelectItem value="cultural">Cultural</SelectItem>
-                    <SelectItem value="food">Food</SelectItem>
-                    <SelectItem value="nightlife">Nightlife</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={newEvent.date}
-                    onChange={(e) => setNewEvent(prev => ({ ...prev, date: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="time">Time</Label>
-                  <Input
-                    id="time"
-                    type="time"
-                    value={newEvent.time}
-                    onChange={(e) => setNewEvent(prev => ({ ...prev, time: e.target.value }))}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="venue">Venue</Label>
-                <Input
-                  id="venue"
-                  value={newEvent.location.venue}
-                  onChange={(e) => setNewEvent(prev => ({ 
-                    ...prev, 
-                    location: { ...prev.location, venue: e.target.value }
-                  }))}
-                  placeholder="Venue name"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={newEvent.location.address}
-                  onChange={(e) => setNewEvent(prev => ({ 
-                    ...prev, 
-                    location: { ...prev.location, address: e.target.value }
-                  }))}
-                  placeholder="Full address"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="maxAttendees">Max Attendees (optional)</Label>
-                <Input
-                  id="maxAttendees"
-                  type="number"
-                  value={newEvent.maxAttendees}
-                  onChange={(e) => setNewEvent(prev => ({ ...prev, maxAttendees: e.target.value }))}
-                  placeholder="Leave empty for unlimited"
-                />
-              </div>
-              
-              <Button onClick={handleCreateEvent} className="w-full bg-gradient-primary">
-                Create Event
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
 
-      {/* Search and Filter */}
-      <div className="space-y-4 mb-6">
+        {/* Stories Section */}
+        <div className="mb-8">
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            {/* Add Story */}
+            <div className="flex-shrink-0 cursor-pointer group">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-muted to-muted/50 border-2 border-dashed border-muted-foreground/30 flex items-center justify-center group-hover:border-primary-glow transition-all duration-300">
+                  <Camera className="h-6 w-6 text-muted-foreground group-hover:text-primary-glow transition-colors" />
+                </div>
+              </div>
+              <p className="text-xs text-center mt-2 text-muted-foreground">Your Story</p>
+            </div>
+
+            {stories.map((story, index) => (
+              <div
+                key={story.id}
+                className="flex-shrink-0 cursor-pointer group"
+                onClick={() => handleStoryClick(index)}
+              >
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-yellow-500 p-0.5 group-hover:scale-110 transition-transform duration-300">
+                    <img
+                      src={story.user.photo}
+                      alt={story.user.name}
+                      className="w-full h-full rounded-full object-cover border-2 border-background"
+                    />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-background animate-pulse"></div>
+                </div>
+                <p className="text-xs text-center mt-2 text-muted-foreground truncate w-16 group-hover:text-foreground transition-colors">
+                  {story.user.name}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Swipe Card */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search events..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+          <SwipeCard
+            user={currentMatch}
+            onLike={handleLike}
+            onPass={handlePass}
+            onSuperLike={handleSuperLike}
+            className="mb-8"
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {categories.map((category) => (
-            <Button
-              key={category.id}
-              variant={selectedCategory === category.id ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory(category.id)}
-              className="whitespace-nowrap"
-            >
-              {category.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Events List */}
-      <div className="space-y-4">
-        {filteredEvents.map((event) => (
-          <Card key={event.id} className="shadow-card hover-lift overflow-hidden">
-            <div className="flex">
-              <img
-                src={event.photos?.[0] || 'https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg'}
-                alt={event.title}
-                className="w-24 h-24 object-cover"
-              />
-              <div className="flex-1">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg font-playfair">{event.title}</CardTitle>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{new Date(event.event_date || event.date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>{event.event_time || event.time}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="capitalize">
-                      {event.type}
-                    </Badge>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pt-0">
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                    {event.description}
-                  </p>
-
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      <span className="truncate">{event.location?.venue || event.location_venue}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      <span>{event.currentAttendees?.length || 0}/{event.maxAttendees || event.max_attendees || '∞'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-1">
-                      {(event.tags || []).slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleInterestedEvent(event.id)}
-                      >
-                        Interested
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-gradient-primary"
-                        onClick={() => handleJoinEvent(event.id)}
-                      >
-                        Join
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {filteredEvents.length === 0 && (
-        <div className="text-center py-12">
-          <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">No events found</h3>
-          <p className="text-muted-foreground mb-4">Try adjusting your search or create a new event!</p>
-          <Button onClick={() => setShowCreateDialog(true)} className="bg-gradient-primary">
-            <Plus className="h-4 w-4 mr-2" />
-            Create First Event
+        {/* Quick Actions */}
+        <div className="flex justify-center items-center gap-6 mb-6">
+          <Button
+            size="lg"
+            variant="outline"
+            className="rounded-full w-16 h-16 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 hover:scale-110 shadow-lg hover:shadow-red-500/25"
+            onClick={handlePass}
+          >
+            <X className="h-7 w-7" />
+          </Button>
+          
+          <Button
+            size="lg"
+            variant="outline"
+            className="rounded-full w-14 h-14 border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white transition-all duration-300 hover:scale-110 shadow-lg hover:shadow-yellow-500/25"
+            onClick={handleSuperLike}
+          >
+            <Star className="h-6 w-6" />
+          </Button>
+          
+          <Button
+            size="lg"
+            className="rounded-full w-16 h-16 bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 hover:from-pink-600 hover:via-red-600 hover:to-orange-600 transition-all duration-300 hover:scale-110 shadow-lg hover:shadow-pink-500/25"
+            onClick={handleLike}
+          >
+            <Heart className="h-7 w-7" />
           </Button>
         </div>
+        
+        {/* Action Labels */}
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground flex items-center justify-center gap-4">
+            <span className="flex items-center gap-1">
+              <X className="h-3 w-3 text-red-500" />
+              Pass
+            </span>
+            <span className="flex items-center gap-1">
+              <Star className="h-3 w-3 text-yellow-500" />
+              Super Like
+            </span>
+            <span className="flex items-center gap-1">
+              <Heart className="h-3 w-3 text-pink-500" />
+              Like
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {/* Match Modal */}
+      {showMatchModal && matchedUser && profile && (
+        <MatchModal
+          isOpen={showMatchModal}
+          onClose={() => setShowMatchModal(false)}
+          currentUser={{
+            name: profile.name || 'You',
+            photo: profile.photos?.[0] || 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg'
+          }}
+          matchedUser={{
+            name: matchedUser.name,
+            photo: matchedUser.photos?.[0] || 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg'
+          }}
+          onSendMessage={() => {
+            setShowMatchModal(false);
+            // Navigate to chat
+          }}
+          onKeepSwiping={() => setShowMatchModal(false)}
+        />
       )}
+
+      {/* Story Viewer */}
+      <StoryViewer
+        stories={stories}
+        initialIndex={selectedStoryIndex}
+        isOpen={showStories}
+        onClose={() => setShowStories(false)}
+        onLike={(storyId) => console.log('Liked story:', storyId)}
+        onMessage={(userId) => console.log('Message user:', userId)}
+      />
     </div>
   );
 };
 
-export default EventsPage;
+export default DiscoverPage;
